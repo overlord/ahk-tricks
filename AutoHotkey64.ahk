@@ -69,6 +69,15 @@ SendByChar(s_text) {
   }
 }
 ; ------------------------------
+PasteString(s_text) {
+  saved := ClipboardAll()
+  A_Clipboard := s_text
+  ; MsgBox(A_Clipboard)
+  SendInput("^v")
+  A_Clipboard := saved
+  saved := ""
+}
+; ------------------------------
 ActivateOnly(exe) {
   h_title := "ahk_exe " . exe
   if WinExist(h_title) {
