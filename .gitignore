@@ -1,0 +1,9 @@
+UX/
+old*
+
+license.txt
+WindowSpy.ahk
+
+*.exe
+*.cmd
+*.chm
