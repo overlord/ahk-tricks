@@ -17,42 +17,47 @@ WORK_NOTES_DIR := "D:\Work-Notes"
 USER_DIR := EnvGet("USERPROFILE")
 
 ; ----------------------------------!---------------------------------------------
-#1::ActivateOnly("devenv.exe")
+#1::ActivateOrMinimizeMany("devenv.exe code.exe")
 #2::ActivateOrMinimizeMany("sublime_text.exe code.exe", PORTABLE_DIR . "\Sublime Text\sublime_text.exe")
 #3::ActivateOrMinimizeMany("ssms.exe dbeaver.exe")
 #4::ActivateOrMinimizeMany("sublime_merge.exe sourcetree.exe", PORTABLE_DIR . "\Sublime Merge\sublime_merge.exe")
 #5::ActivateOrMinimize("RoslynPad.exe", PORTABLE_DIR . "\RoslynPad\RoslynPad.exe")
 ; ------------------------------
-#`::ActivateOrMinimize("mstsc.exe", "mstsc.exe")
+; сраная тильда ~ и её сканкод SC029 (для потомков)
+#SC029::ActivateOrMinimize("mstsc.exe", "mstsc.exe")
+^+SC029::SendText("@")
+; ------------------------------
 #F1::Run(WORK_NOTES_DIR . "\#work.txt")
-#F2::Run(WORK_NOTES_DIR . "\#think-POE-Policy-Engine.txt")
-#F3::Run(WORK_NOTES_DIR . "\#think-Woody-Dispatcher.txt")
-#F4::Run(WORK_NOTES_DIR . "\#think-TIAM.txt")
-#F5::Run(PORTABLE_DIR . "\AutoHotkey\AutoHotkey64.ahk")
+#F2::Run(WORK_NOTES_DIR . "\#think-CUST-INV.txt")
+#F3::Run(WORK_NOTES_DIR . "\#think-POE-PolicyEngine-BLK-M2M.txt")
+#F4::Run(WORK_NOTES_DIR . "\#think-FORIS.txt")
+#F5::Run(WORK_NOTES_DIR . "\#think-PROD.txt")
+#F6::Run(WORK_NOTES_DIR . "\#think-TIAM.txt")
+#F12::Run(PORTABLE_DIR . "\AutoHotkey\AutoHotkey64.ahk")
 #N::Run(USER_DIR . "\.nuget\packages")
+#P::Run(PROJECTS_DIR)
 ; ------------------------------
 #C::ActivateOrMinimizeConsole()
 +#C::NewConsole()
+#V::PasteCredentials()
+; ------------------------------
 #D::ActivateOrMinimizeMany("Rocket.Chat.exe")
+#F::ActivateOrMinimizeMany("TeleLink.exe МТС Линк.exe")
 #Q::ActivateOrMinimizeMany("launcher.exe Opera.exe Chrome.exe")
-#S::ActivateOrMinimize("Skype.exe")
+#S::ActivateOrMinimizeMany("lync.exe Skype.exe")
 #T::ActivateOrMinimizeMany("Telegram.exe")
 #W::ActivateOrMinimize("outlook.exe")
-#V::PasteCredentials()
 ; ------------------------------
 #X:: { ; test
   Loop Parse, "Azaza  Za", " " {
     MsgBox(A_LoopField)
   }
 }
-
 ; ------------------------------
-; фикс верхних кнопок клавиатуры
-Volume_Mute::Send("{PrintScreen}")
-+Volume_Mute::Send("+{PrintScreen}")
-Volume_Down::Send("{ScrollLock}")
-Volume_Up::Send("{Pause}")
-+Volume_Up::Send("+{Pause}")
+; ремапинг верхних кнопок клавиатуры
+Volume_Mute::PrintScreen
+Volume_Down::ScrollLock
+Volume_Up::Pause
 
 ; ----------------------------------!---------------------------------------------
 SendTab() {
