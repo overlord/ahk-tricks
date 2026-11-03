@@ -3,6 +3,7 @@ old*
 
 license.txt
 WindowSpy.ahk
+config.ini
 
 *.exe
 *.cmd
