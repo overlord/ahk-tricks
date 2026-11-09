@@ -23,37 +23,47 @@ USER_DIR       := EnvGet("USERPROFILE")
 ; ----------------------------------!---------------------------------------------
 ; ^ Ctrl, ! Alt, + Shift, # Win
 ; ------------------------------
-#1::ActivateOrMinimizeMany(["devenv.exe", "code.exe"])
-#2::ActivateOrMinimizeMany(["sublime_text.exe", "code.exe"], PORTABLE_DIR . "\Sublime Text\sublime_text.exe")
-#3::ActivateOrMinimizeMany(["ssms.exe", "dbeaver.exe"])
-#4::ActivateOrMinimizeMany(["sublime_merge.exe", "sourcetree.exe"], PORTABLE_DIR . "\Sublime Merge\sublime_merge.exe")
-#5::ActivateOrMinimize("RoslynPad.exe", PORTABLE_DIR . "\RoslynPad\RoslynPad.exe")
+; ideApps := AppSwitcher(["devenv.exe", "code.exe"])
+; editorApps := AppSwitcher(["sublime_text.exe", "code.exe"], PORTABLE_DIR . "\Sublime Text\sublime_text.exe")
+; sqlApps := AppSwitcher(["ssms.exe", "plsqldev.exe", "dbeaver.exe"])
+; gitApps := AppSwitcher(["sublime_merge.exe", "sourcetree.exe"], PORTABLE_DIR . "\Sublime Merge\sublime_merge.exe")
+; --
+; #1::ideApps.Toggle()
+; #2::editorApps.Toggle()
+; #3::sqlApps.Toggle()
+; #4::gitApps.Toggle()
+; --
+$#1::ActivateOrMinimize(["devenv.exe", "code.exe"])
+$#2::ActivateOrMinimize(["sublime_text.exe", "code.exe"], PORTABLE_DIR . "\Sublime Text\sublime_text.exe")
+$#3::ActivateOrMinimize(["dbeaver.exe", "ssms.exe"])
+$#4::ActivateOrMinimize(["sublime_merge.exe", "sourcetree.exe"], PORTABLE_DIR . "\Sublime Merge\sublime_merge.exe")
+$#5::ActivateOrMinimize(["plsqldev.exe"])
 ; ------------------------------
 ; сраная тильда ~ и её сканкод SC029 (для потомков)
-#SC029::ActivateOrMinimize("mstsc.exe", "mstsc.exe")
+#SC029::ActivateOrMinimize(["mstsc.exe"], "mstsc.exe")
 ^+SC029::SendText("@")
 ; ------------------------------
-#F1::Run(WORK_NOTES_DIR . "\#work.txt")
-#F2::Run(WORK_NOTES_DIR . "\#think-CUST-INV.txt")
-#F3::Run(WORK_NOTES_DIR . "\#think-POE-PolicyEngine-BLK-M2M.txt")
-#F4::Run(WORK_NOTES_DIR . "\#think-FORIS.txt")
-#F5::Run(WORK_NOTES_DIR . "\#think-PROD.txt")
-#F6::Run(WORK_NOTES_DIR . "\#think-TIAM.txt")
-#F12::Run(PORTABLE_DIR . "\AutoHotkey\AutoHotkey64.ahk")
-#N::Run(USER_DIR . "\.nuget\packages")
-#P::Run(PROJECTS_DIR)
+#F1::MyRun(WORK_NOTES_DIR . "\#work.txt")
+#F2::MyRun(WORK_NOTES_DIR . "\#think-CUST-INV.txt")
+#F3::MyRun(WORK_NOTES_DIR . "\#think-POE-PolicyEngine-BLK-M2M.txt")
+#F4::MyRun(WORK_NOTES_DIR . "\#think-FORIS.txt")
+#F5::MyRun(WORK_NOTES_DIR . "\#think-PROD.txt")
+#F6::MyRun(WORK_NOTES_DIR . "\#think-TIAM.txt")
+#F12::MyRun(PORTABLE_DIR . "\AutoHotkey\AutoHotkey64.ahk")
+#N::MyRun(USER_DIR . "\.nuget\packages")
+#P::MyRun(PROJECTS_DIR)
 ; ------------------------------
 #C::ActivateOrMinimizeConsole()
 +#C::NewConsole()
 #V::PasteCredentials()
 ^+#P::PastePass()
 ; ------------------------------
-#D::ActivateOrMinimizeMany(["Rocket.Chat.exe"])
-#F::ActivateOrMinimizeMany(["TeleLink.exe", "МТС Линк.exe"])
-#Q::ActivateOrMinimizeMany(["launcher.exe", "Opera.exe", "Chrome.exe"])
-#S::ActivateOrMinimizeMany(["lync.exe", "Skype.exe"])
-#T::ActivateOrMinimizeMany(["max.exe", "Telegram.exe"])
-#W::ActivateOrMinimize("outlook.exe")
+#D::ActivateOrMinimize(["Rocket.Chat.exe"])
+#F::ActivateOrMinimize(["TeleLink.exe", "МТС Линк.exe"])
+#Q::ActivateOrMinimize(["launcher.exe", "Opera.exe", "Chrome.exe"])
+#S::ActivateOrMinimize(["lync.exe", "Skype.exe"])
+#T::ActivateOrMinimize(["max.exe", "Telegram.exe"])
+#W::ActivateOrMinimize(["outlook.exe"])
 ; ------------------------------
 ; ремапинг верхних кнопок клавиатуры
 ; Volume_Mute::Send("{PrintScreen}")
@@ -63,12 +73,68 @@ Volume_Mute::PrintScreen
 Volume_Down::ScrollLock
 Volume_Up::Pause
 ; ----------------------------------!---------------------------------------------
-SendTab() {
-	Sleep(200)
-	Send("{tab}")
-	Sleep(200)
+Class AppSwitcher {
+	__New(executables, run_exe := "", timeout := 300) {
+		this.executables := executables
+		this.run_exe := run_exe
+		this.timeout := timeout
+		this.last_exe := ""
+		this.waiting := false ; признак ожидания второго нажатия
+
+		; Важно: привязываем метод к контексту 'this', чтобы SetTimer корректно работал с объектом
+		this.callback := this.Invoke1.Bind(this)
+	}
+
+	; Главная точка входа при нажатии на хоткей
+	Toggle() {
+		if this.waiting {
+			this.waiting := false
+			SetTimer(this.callback, 0)
+			this.Invoke2()
+		} else {
+			this.all_exe := ExistingAll(this.executables)
+
+			if this.all_exe.Length < 1 {
+				(this.run_exe != "") && MyRun(this.run_exe)
+				return
+			}
+
+			this.active_exe := ActiveFirst(this.executables)
+
+			this.waiting := true
+			SetTimer(this.callback, -this.timeout)
+		}
+	}
+
+	Invoke1() { ; Одиночное нажатие (срабатывает по таймеру)
+		this.waiting := false
+
+		if this.active_exe != "" {
+			this.last_exe := this.active_exe
+			MyMinimize(this.active_exe)
+		}
+		else {
+			(this.last_exe = "") && this.last_exe := this.all_exe[1]
+			MyActivate(this.last_exe)
+		}
+	}
+
+	Invoke2() { ; Двойное нажатие (срабатывает мгновенно, если успели нажать второй раз)
+		this.waiting := false
+
+		if this.active_exe != "" {
+			this.last_exe := this.active_exe
+			MyMinimize(this.active_exe)
+		}
+
+		i := IndexOf(this.all_exe, this.last_exe)
+		i := (i > 0 && i < this.all_exe.Length) ? i + 1 : 1
+		this.last_exe := this.all_exe[i]
+
+		(this.last_exe != this.active_exe) && MyActivate(this.last_exe)
+	}
 }
-; ------------------------------
+; ----------------------------------!---------------------------------------------
 ; !_! Специальный метод посимвольной вставки - применяется для вставки кредов на странных формах
 SendByChar(s_text, delay := 25) {
 	Sleep(200)
@@ -77,80 +143,127 @@ SendByChar(s_text, delay := 25) {
 		SendInput(A_LoopField)
 	}
 }
+; --
+SendTab(delay := 200) {
+	Sleep(delay)
+	Send("{tab}")
+	Sleep(delay)
+}
+; ------------------------------
+IndexOf(items, item) {
+	for idx, str in items {
+		if (str = item) {
+			return idx
+		}
+	}
+	return 0 ; не найдено
+}
+; ------------------------------
+ActiveFirst(executables) {
+	for exe in executables {
+		if WinActive("ahk_exe " . exe) {
+			return exe
+		}
+	}
+	return ""
+}
+; --
+IsActiveAny(executables) {
+	return ActiveFirst(executables) != ""
+}
+; --
+ExistingAll(executables) {
+	found := []
+	for exe in executables {
+		if WinExist("ahk_exe " . exe) {
+			found.Push(exe)
+		}
+	}
+	return found
+}
+; --
+ExistingFirst(executables) {
+	found := ExistingAll(executables)
+	if found.Length > 0 {
+		return found[1] ; первый
+	}
+	return ""
+}
+; ------------------------------
+MyMinimize(exe) {
+	WinMinimize("ahk_exe " . exe)
+}
+; --
+MyActivate(exe) {
+	WinActivate("ahk_exe " . exe)
+}
+; --
+MyRun(exe) {
+	try {
+		Run(exe)
+		return true
+	} catch as err {
+		MsgBox("Failed to run: " . exe . "`n" . err.Message, "Error", 16)
+		return false
+	}
+}
 ; ------------------------------
 ActivateOnly(exe) {
+	existing := ExistingFirst([exe])
 	h_title := "ahk_exe " . exe
-	if WinExist(h_title) {
-		if not WinActive(h_title) {
-			WinActivate(h_title)
+	if existing != "" {
+		active_exe := ActiveFirst([exe])
+		if active_exe = "" {
+			MyActivate(exe)
 		}
 		return true
 	}
 	return false
 }
-; ------------------------------
-ActivateOrMinimize(exe, run_exe := "") {
-	h_title := "ahk_exe " . exe
-
-	if WinActive(h_title) {
-		WinMinimize(h_title)
+; --
+ActivateOrMinimize(executables, run_exe := "") {
+	active_exe := ActiveFirst(executables)
+	if active_exe != "" {
+		MyMinimize(active_exe)
 		return true
-	}
-
-	if WinExist(h_title) {
-		WinActivate(h_title)
-		; WinMaximize(h_title)
-		return true
-	}
-
-	if run_exe != "" {
-		Run(run_exe)
-		return true
-	}
-
-	return false
-}
-; ------------------------------
-ActivateOrMinimizeMany(executables, run_exe := "") {
-	for exe in executables {
-		if ActivateOrMinimize(exe)
+	} else {
+		existing := ExistingFirst(executables)
+		if existing != "" {
+			MyActivate(existing)
 			return true
+		}
+		else if run_exe != "" {
+			return MyRun(run_exe)
+		}
 	}
-
-	if run_exe != "" {
-		Run(run_exe)
-		return true
-	}
-
 	return false
 }
 ; ------------------------------
 GetCurrentPath(default_path) {
-		if WinGetClass("A") != "CabinetWClass"
-				return default_path
-		shell := ComObject("Shell.Application") ; Получаем путь активного окна Explorer через COM
-		currentPath := default_path
-		for window in shell.Windows {
-				if window.HWND = WinGetID("A") {
-						currentPath := window.Document.Folder.Self.Path
-						break
-				}
+	if WinGetClass("A") != "CabinetWClass"
+		return default_path
+	shell := ComObject("Shell.Application") ; Получаем путь активного окна Explorer через COM
+	currentPath := default_path
+	for window in shell.Windows {
+		if window.HWND = WinGetID("A") {
+			currentPath := window.Document.Folder.Self.Path
+			break
 		}
-		return currentPath
+	}
+	shell := ""
+	return currentPath
 }
 ; ------------------------------
 ActivateOrMinimizeConsole() {
-	if not ActivateOrMinimizeMany(["wt.exe", "WindowsTerminal.exe", "mintty.exe", "ConEmu64.exe", "cmd.exe", "powershell.exe"]) {
-		currentPath := GetCurrentPath(PROJECTS_DIR)
-		SetWorkingDir(currentPath)
-		Run(PORTABLE_DIR . "\WindowsTerminal\WindowsTerminal.exe")
+	if not ActivateOrMinimize(["wt.exe", "WindowsTerminal.exe", "mintty.exe", "ConEmu64.exe", "cmd.exe", "powershell.exe"]) {
+		NewConsole()
 	}
 }
 ; ------------------------------
 NewConsole() {
 	currentPath := GetCurrentPath(PROJECTS_DIR)
 	SetWorkingDir(currentPath)
-	Run(PORTABLE_DIR . "\WindowsTerminal\WindowsTerminal.exe")
+	MyRun(PORTABLE_DIR . "\WindowsTerminal\WindowsTerminal.exe")
 }
 ; ------------------------------
 PasteCredentials() {
@@ -184,6 +297,8 @@ PasteCredentials() {
 }
 ; ------------------------------
 PastePass() {
-	KeyWait("LWin", "L")
-	Send(PASS)
+	KeyWait("LWin")
+	KeyWait("Ctrl")
+	KeyWait("Shift")
+	SendText(PASS)
 }
